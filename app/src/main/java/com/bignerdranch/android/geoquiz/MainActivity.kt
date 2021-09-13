@@ -48,10 +48,14 @@ class MainActivity : AppCompatActivity() {
 
         trueButton.setOnClickListener { view: View ->
             checkAnswer(true)
+            trueButton.isEnabled = false
+            falseButton.isEnabled = false
         }
 
         falseButton.setOnClickListener { view: View ->
             checkAnswer(false)
+            falseButton.isEnabled = false
+            trueButton.isEnabled = false
         }
 
         previousButton.setOnClickListener {
@@ -60,11 +64,15 @@ class MainActivity : AppCompatActivity() {
             }
             currentIndex = (currentIndex - 1) % questionBank.size
             updateQuestion()
+            falseButton.isEnabled = true
+            trueButton.isEnabled = true
         }
 
         nextButton.setOnClickListener {
             currentIndex = (currentIndex + 1) % questionBank.size
             updateQuestion()
+            falseButton.isEnabled = true
+            trueButton.isEnabled = true
         }
 
         updateQuestion()
