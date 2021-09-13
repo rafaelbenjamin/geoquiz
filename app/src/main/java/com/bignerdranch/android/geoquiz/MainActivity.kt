@@ -9,6 +9,7 @@ import android.widget.Button
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
+import kotlin.math.roundToInt
 
 private const val TAG = "MainActivity"
 
@@ -19,16 +20,17 @@ class MainActivity : AppCompatActivity() {
     private lateinit var nextButton: ImageButton
     private lateinit var questionTextView: TextView
 
-    private val questionBank = listOf(
-        Question(R.string.question_australia, true),
-        Question(R.string.question_oceans, true),
-        Question(R.string.question_mideast, false),
-        Question(R.string.question_africa, false),
-        Question(R.string.question_americas, true),
-        Question(R.string.question_asia, true)
+    private var questionBank = listOf(
+        Question(R.string.question_australia, answer = true, result = false),
+        Question(R.string.question_oceans, answer = true, result = false),
+        Question(R.string.question_mideast, answer = false, result = false),
+        Question(R.string.question_africa, answer = false, result = false),
+        Question(R.string.question_americas, answer = true, result = false),
+        Question(R.string.question_asia, answer = true, result = false),
     )
 
     private var currentIndex = 0
+    private var rightAnswers = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,11 +43,6 @@ class MainActivity : AppCompatActivity() {
         nextButton = findViewById(R.id.next_button)
         questionTextView = findViewById(R.id.question_text_view)
 
-        questionTextView.setOnClickListener { view: View ->
-            currentIndex = (currentIndex + 1) % questionBank.size
-            updateQuestion()
-        }
-
         trueButton.setOnClickListener { view: View ->
             checkAnswer(true)
             trueButton.isEnabled = false
@@ -56,6 +53,7 @@ class MainActivity : AppCompatActivity() {
             checkAnswer(false)
             falseButton.isEnabled = false
             trueButton.isEnabled = false
+
         }
 
         previousButton.setOnClickListener {
@@ -66,6 +64,7 @@ class MainActivity : AppCompatActivity() {
             updateQuestion()
             falseButton.isEnabled = true
             trueButton.isEnabled = true
+
         }
 
         nextButton.setOnClickListener {
@@ -112,14 +111,36 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkAnswer(userAnswer: Boolean) {
-        val correctAnswer = questionBank[currentIndex].answer
+        var correctAnswer = questionBank[currentIndex].answer
+        var finalResult: Double
+        var totalQuestions = questionBank.size.toDouble()
+        val messageResId: Int
 
-        val messageResId = if (userAnswer == correctAnswer) {
-            R.string.correct_toast
+        if (userAnswer == correctAnswer) {
+            messageResId = R.string.correct_toast
+            questionBank[currentIndex].result = true
         } else {
-            R.string.incorrect_toast
+            messageResId = R.string.incorrect_toast
+            questionBank[currentIndex].result = false
         }
+
+        Log.v(TAG, currentIndex.toString() + " " + questionBank[currentIndex].result.toString())
+
         Toast.makeText(this, messageResId, Toast.LENGTH_SHORT)
             .show()
+
+        if (currentIndex == 5) {
+            rightAnswers = 0
+            for (question in questionBank) {
+                if (question.result) {
+                    rightAnswers += 1
+                }
+            }
+
+            finalResult = (rightAnswers / totalQuestions) * 100.00
+            var toast = Toast.makeText(this, "${finalResult.roundToInt()} %", Toast.LENGTH_SHORT)
+            toast.setGravity(Gravity.TOP, 0, 200)
+            toast.show()
+        }
     }
 }
