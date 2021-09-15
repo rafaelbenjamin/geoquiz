@@ -9,9 +9,12 @@ import android.widget.Button
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelProviders
 import kotlin.math.roundToInt
 
 private const val TAG = "MainActivity"
+private const val KEY_INDEX = "index"
 
 class MainActivity : AppCompatActivity() {
     private lateinit var trueButton: Button
@@ -20,22 +23,17 @@ class MainActivity : AppCompatActivity() {
     private lateinit var nextButton: ImageButton
     private lateinit var questionTextView: TextView
 
-    private var questionBank = listOf(
-        Question(R.string.question_australia, answer = true, result = false),
-        Question(R.string.question_oceans, answer = true, result = false),
-        Question(R.string.question_mideast, answer = false, result = false),
-        Question(R.string.question_africa, answer = false, result = false),
-        Question(R.string.question_americas, answer = true, result = false),
-        Question(R.string.question_asia, answer = true, result = false),
-    )
-
-    private var currentIndex = 0
-    private var rightAnswers = 0
+    private val quizViewModel: QuizViewModel by lazy {
+        ViewModelProviders.of(this).get(QuizViewModel::class.java)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "onCreate(Bundle?) called")
         setContentView(R.layout.activity_main)
+
+        val currentIndex = savedInstanceState?.getInt(KEY_INDEX, 0) ?: 0
+        quizViewModel.currentIndex = currentIndex
 
         trueButton = findViewById(R.id.true_button)
         falseButton = findViewById(R.id.false_button)
@@ -57,10 +55,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         previousButton.setOnClickListener {
-            if (currentIndex - 1 == -1) {
-                currentIndex = questionBank.size
-            }
-            currentIndex = (currentIndex - 1) % questionBank.size
+            quizViewModel.moveToPrevious()
             updateQuestion()
             falseButton.isEnabled = true
             trueButton.isEnabled = true
@@ -68,7 +63,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         nextButton.setOnClickListener {
-            currentIndex = (currentIndex + 1) % questionBank.size
+            quizViewModel.moveToNext()
             updateQuestion()
             falseButton.isEnabled = true
             trueButton.isEnabled = true
@@ -93,6 +88,12 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "onPause() called")
     }
 
+    override fun onSaveInstanceState(savedInstanceState: Bundle) {
+        super.onSaveInstanceState(savedInstanceState)
+        Log.i(TAG, "onSaveInstanceState")
+        savedInstanceState.putInt(KEY_INDEX, quizViewModel.currentIndex)
+    }
+
     override fun onStop() {
         super.onStop()
         Log.d(TAG, "onStop() called")
@@ -105,39 +106,43 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun updateQuestion() {
-        val questionTextResId = questionBank[currentIndex].textResId
+        val questionTextResId = quizViewModel.currentQuestionText
         questionTextView.setText(questionTextResId)
 
     }
 
     private fun checkAnswer(userAnswer: Boolean) {
-        var correctAnswer = questionBank[currentIndex].answer
+        val correctAnswer = quizViewModel.currentQuestionAnswer
         var finalResult: Double
-        var totalQuestions = questionBank.size.toDouble()
+        var totalQuestions = quizViewModel.totalQuestions.toDouble()
         val messageResId: Int
 
         if (userAnswer == correctAnswer) {
             messageResId = R.string.correct_toast
-            questionBank[currentIndex].result = true
+            quizViewModel.currentQuestionResult = true
         } else {
             messageResId = R.string.incorrect_toast
-            questionBank[currentIndex].result = false
+            quizViewModel.currentQuestionResult = false
         }
 
-        Log.v(TAG, currentIndex.toString() + " " + questionBank[currentIndex].result.toString())
+        Log.v(
+            TAG,
+            quizViewModel.currentIndex.toString() + "" + quizViewModel.currentQuestionResult.toString()
+        )
 
         Toast.makeText(this, messageResId, Toast.LENGTH_SHORT)
             .show()
 
-        if (currentIndex == 5) {
-            rightAnswers = 0
-            for (question in questionBank) {
+        if (quizViewModel.currentIndex == 5) {
+            quizViewModel.rightAnswers = 0
+
+            for (question in quizViewModel.questionBankList) {
                 if (question.result) {
-                    rightAnswers += 1
+                    quizViewModel.rightAnswers += 1
                 }
             }
 
-            finalResult = (rightAnswers / totalQuestions) * 100.00
+            finalResult = (quizViewModel.rightAnswers / totalQuestions) * 100.00
             var toast = Toast.makeText(this, "${finalResult.roundToInt()} %", Toast.LENGTH_SHORT)
             toast.setGravity(Gravity.TOP, 0, 200)
             toast.show()
