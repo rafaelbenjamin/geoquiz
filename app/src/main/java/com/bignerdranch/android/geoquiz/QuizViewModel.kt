@@ -17,6 +17,7 @@ class QuizViewModel : ViewModel() {
 
     var rightAnswers = 0
     var currentIndex = 0
+    var isCheater = false
 
     private var questionBank = listOf(
         Question(R.string.question_australia, answer = true, result = false),
